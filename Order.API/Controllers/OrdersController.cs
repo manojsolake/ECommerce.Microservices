@@ -7,19 +7,30 @@ namespace Order.API.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly HttpClient _httpClient;
+    private readonly IConfiguration _configuration;
 
-    public OrdersController(HttpClient httpClient)
+    public OrdersController(
+        HttpClient httpClient,
+        IConfiguration configuration)
     {
         _httpClient = httpClient;
+        _configuration = configuration;
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateOrder()
     {
+        var customerApiUrl =
+            _configuration["ServiceUrls:CustomerApi"];
+
+        var productApiUrl =
+            _configuration["ServiceUrls:ProductApi"];
+
         // Step 1 - Validate Customer
 
-        var customerResponse = await _httpClient.GetAsync(
-            "https://localhost:7042/api/customers/validate/1");
+        var customerResponse =
+            await _httpClient.GetAsync(
+                $"{customerApiUrl}/api/customers/validate/1");
 
         if (!customerResponse.IsSuccessStatusCode)
         {
@@ -28,8 +39,9 @@ public class OrdersController : ControllerBase
 
         // Step 2 - Check Product Stock
 
-        var productResponse = await _httpClient.GetAsync(
-            "https://localhost:7223/api/products/stock/1");
+        var productResponse =
+            await _httpClient.GetAsync(
+                $"{productApiUrl}/api/products/stock/1");
 
         if (!productResponse.IsSuccessStatusCode)
         {
@@ -51,19 +63,6 @@ public class OrdersController : ControllerBase
         {
             Message = "Order Created Successfully",
             Order = order
-        });
-    }
-
-    [HttpGet("{orderId}")]
-    public IActionResult GetOrder(int orderId)
-    {
-        return Ok(new
-        {
-            OrderId = orderId,
-            CustomerId = 1,
-            ProductId = 1,
-            Quantity = 1,
-            Status = "Pending"
         });
     }
 }
